@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>GPT-5 Chat</title>
+  <style>
+    body { font-family: sans-serif; background: #111; color: #eee; display: flex; flex-direction: column; align-items: center; height: 100vh; margin: 0; }
+    #chat { width: 80%; max-width: 700px; height: 80%; overflow-y: auto; border: 1px solid #444; border-radius: 10px; padding: 10px; background: #222; margin-top: 20px; }
+    .msg { margin: 6px 0; }
+    .user { color: #9ef; }
+    .bot { color: #0f0; }
+    input { width: 80%; padding: 10px; margin-top: 10px; border: none; border-radius: 5px; background: #333; color: #fff; }
+  </style>
+</head>
+<body>
+  <h2>💬 GPT-5 Chat</h2>
+  <div id="chat"></div>
+  <input id="input" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendMessage()" />
+  <script>
+    let session = localStorage.getItem("session") || Date.now().toString();
+    localStorage.setItem("session", session);
+
+    const chat = document.getElementById("chat");
+
+    function appendMessage(role, text) {
+      const div = document.createElement("div");
+      div.className = "msg " + role;
+      div.textContent = (role === "user" ? "🧑: " : "🤖: ") + text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById("input");
+      const msg = input.value.trim();
+      if (!msg) return;
+      input.value = "";
+      appendMessage("user", msg);
+
+      const res = await fetch("/api/v1/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session, message: msg })
+      });
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let botMsg = "";
+      appendMessage("bot", "");
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        botMsg += chunk;
+        chat.lastChild.textContent = "🤖: " + botMsg;
+      }
+    }
+
+    // автоочистка чата через 5 минут
+    setTimeout(() => {
+      localStorage.removeItem("session");
+      chat.innerHTML = "";
+      const div = document.createElement("div");
+      div.textContent = "⏳ Чат истёк. Начни заново.";
+      chat.appendChild(div);
+    }, 5 * 60 * 1000);
+  </script>
+</body>
+</html>

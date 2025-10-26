@@ -1,0 +1,26 @@
+FROM golang:1.24.9-alpine3.22 AS build
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod tidy
+
+COPY . .
+
+RUN GOOS=linux GOARCH=amd64 go build -o server ./cmd/geography/main.go
+
+FROM debian:bullseye-slim
+
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+
+COPY --from=build /app/server .
+COPY --from=build /app/static ./static
+
+RUN chmod +x server
+
+EXPOSE 8081
+
+CMD ["./server"]
