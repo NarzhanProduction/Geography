@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <title>Мақаланы өңдеу</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@tailwindcss/typography@0.5.10/dist/typography.min.css" rel="stylesheet">
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 text-gray-900">
+    <!-- Жоғарғы панель -->
+    <nav class="bg-white shadow-md py-3">
+        <div class="max-w-6xl mx-auto flex justify-between items-center px-4">
+            <h1 class="text-xl font-semibold">✏️ Мақаланы өңдеу</h1>
+            <a href="/" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">Басты бетке қайту</a>
+        </div>
+    </nav>
+
+    <!-- Редактор -->
+    <div class="max-w-4xl mx-auto py-10 px-4">
+        <div id="editor" class="prose bg-white rounded-lg shadow min-h-[400px]"></div>
+
+        <div class="mt-6 text-right">
+            <button id="save" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">Сақтау</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <script>
+        // Инициализация Quill
+        const quill = new Quill('#editor', {
+            theme: 'snow',
+            modules: {
+                toolbar: [
+                    [{ header: [1, 2, 3, false] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    ['blockquote', 'code-block'],
+                    [{ list: 'ordered' }, { list: 'bullet' }],
+                    ['link', 'image'],
+                    ['clean']
+                ]
+            }
+        });
+
+        // Получаем articleID из URL (/editor/:articleID)
+        const pathParts = window.location.pathname.split('/');
+        const articleId = pathParts[pathParts.length - 1];
+
+        if (!articleId || isNaN(articleId)) {
+            alert('❌ Мақаланың ID табылмады!');
+            window.location.href = '/';
+        }
+
+        // Загружаем статью
+        async function loadArticle() {
+            try {
+                const res = await fetch(`/api/v1/article?id=${articleId}`);
+                if (!res.ok) throw new Error('Қате жүктеу кезінде');
+                const data = await res.json();
+                quill.clipboard.dangerouslyPasteHTML(data.html);
+            } catch (err) {
+                alert('❌ Мақаланы жүктеу сәтсіз аяқталды.');
+            }
+        }
+
+        // Сохраняем статью
+        document.getElementById('save').addEventListener('click', async () => {
+            const content = quill.root.innerHTML;
+        
+            const res = await fetch(`/api/v1/article/${articleId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ html: content })
+            });
+
+        
+            if (res.ok) {
+                alert('✅ Мақала сәтті сақталды!');
+                window.location.href = '/';
+            } else {
+                alert('❌ Қате шықты!');
+            }
+        });
+
+        loadArticle();
+    </script>
+</body>
+</html>

@@ -34,12 +34,23 @@ func run(mainLogger logger.Logger) error {
 	if err != nil {
 		log.Fatalf("error starting database: %v", err)
 	}
+
+	mainLogger.Info(ctx, "migration started")
+	if err := database.Migrate(ctx, repo.DB, mainLogger); err != nil {
+		log.Fatalf("migration failed: %v", err)
+	}
+	mainLogger.Info(ctx, "migration completed")
+
+	articleRepo := repository.NewArticleRepository(repo.DB)
 	userRepo := repository.NewUserRepository(repo.DB)
 	jwtTtl, _ := time.ParseDuration(cfg.JWTttl)
-	usrSrv := service.NewUserService(userRepo, cfg.JWTKey, jwtTtl)
+
+	usrSrv := service.NewUserService(mainLogger, userRepo, cfg.JWTKey, jwtTtl)
 	gptSrv := service.NewChatbotService(cfg.OpenAPIKey, mainLogger)
-	srv := service.NewService(usrSrv, gptSrv)
-	handlers := handlers.NewHandler(srv)
+	articleSrv := service.NewArticleService(articleRepo, mainLogger)
+
+	srv := service.NewService(usrSrv, gptSrv, articleSrv)
+	handlers := handlers.NewHandler(srv, cfg.JWTKey)
 
 	router := api_http.InitRouter()
 	api_http.RegisterHandlers(router, handlers)

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+  <meta charset="UTF-8" />
+  <title>Кіру — География сайты</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 text-gray-900 min-h-screen flex flex-col">
+  <!-- Жоғарғы панель -->
+  <nav class="bg-white shadow-md py-3">
+    <div class="max-w-6xl mx-auto flex justify-between items-center px-4">
+      <h1 class="text-xl font-semibold">📖 География сайты</h1>
+      <div class="space-x-3">
+        <button id="home-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+          Басты бет
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Негізгі бөлім -->
+  <main class="flex-grow flex items-center justify-center">
+    <div class="bg-white shadow-md rounded-lg p-8 w-96">
+      <h2 class="text-2xl font-semibold mb-4 text-center">🔐 Кіру</h2>
+      <form id="login-form" class="space-y-4">
+        <input id="name" type="text" placeholder="Пайдаланушы аты" class="w-full p-2 border rounded" required>
+        <input id="password" type="password" placeholder="Құпия сөз" class="w-full p-2 border rounded" required>
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded">
+          Кіру
+        </button>
+      </form>
+      <p id="error" class="text-red-600 mt-3 text-sm text-center hidden">❌ Қате логин немесе құпия сөз</p>
+    </div>
+  </main>
+
+  <script>
+    document.getElementById("home-btn").addEventListener("click", () => {
+      window.location.href = "/";
+    });
+
+    document.getElementById("login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("name").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      const res = await fetch("/api/v1/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, password })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        document.cookie = `token=${data.token}; path=/; max-age=3600; Secure; SameSite=Lax`;
+        window.location.href = "/";
+      } else {
+        document.getElementById("error").classList.remove("hidden");
+      }
+    });
+  </script>
+</body>
+</html>
